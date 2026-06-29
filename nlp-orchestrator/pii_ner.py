@@ -77,7 +77,7 @@ def detect_sensitive_entities(
         if entity_type is None or score < threshold or start is None or end is None:
             continue
 
-        value = text[int(start):int(end)].strip()
+        value = text[int(start) : int(end)].strip()
         key = (value.casefold(), entity_type)
         if value and key not in seen:
             seen.add(key)
