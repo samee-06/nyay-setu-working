@@ -14,7 +14,7 @@ from typing import List, Optional
 
 from dotenv import load_dotenv
 from fastapi import APIRouter, HTTPException
-from lawgpt.retriever import get_chunk_count, is_index_loaded, retrieve
+from lawgpt.retriever import get_chunk_count, is_index_loaded, retrieve, retrieve_with_scores
 from pydantic import BaseModel, Field
 
 load_dotenv()
@@ -279,3 +279,26 @@ async def health() -> HealthResponse:
         model=_resolve_llm_label(),
         chunk_count=get_chunk_count(),
     )
+
+
+class SearchItem(BaseModel):
+    page_content: str
+    source: str
+    page: int
+    relevance: float
+
+
+class SearchRequest(BaseModel):
+    query: str
+    k: int = Field(default=5, ge=1, le=20)
+
+
+@router.post("/search", response_model=List[SearchItem])
+async def search_precedents(request: SearchRequest) -> List[SearchItem]:
+    """Perform advanced semantic search over legal precedents returning matches with scores."""
+    try:
+        results = retrieve_with_scores(query=request.query, k=request.k)
+        return [SearchItem(**item) for item in results]
+    except Exception as e:
+        logger.error("Semantic search error: %s", e)
+        raise HTTPException(status_code=500, detail=str(e))
